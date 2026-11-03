@@ -1,0 +1,15 @@
+# Compiled binaries
+*.exe
+*.out
+*.app
+bin/
+
+# Intermediate objects
+*.o
+*.obj
+
+# Editor/OS directories
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
