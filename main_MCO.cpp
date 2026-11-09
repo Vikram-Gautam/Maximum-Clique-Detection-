@@ -1,9 +1,10 @@
 #include <iostream>
 #include <iomanip>
 //#include <sys/resource.h>
-#include "MCOSolver.hpp"
+
 #include <windows.h>
 #include <psapi.h>
+#include "MCOSolver.hpp"
 using namespace std;
 
 int main(int argc, char *argv[])

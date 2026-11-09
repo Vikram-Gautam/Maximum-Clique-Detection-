@@ -1,9 +1,10 @@
 #include <iostream>
 #include <iomanip>
 //#include <sys/resource.h>
-#include "MCRSolver.hpp"
+
 #include <windows.h>
 #include <psapi.h>
+#include "MCRSolver.hpp"
 using namespace std;
 
 int main(int argc, char *argv[])
