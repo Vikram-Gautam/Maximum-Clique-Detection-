@@ -267,6 +267,7 @@ private:
 
         for (int v : order) {
             if (core[v] < lb) break;
+            nodes++;
             std::vector<int> C = { v };
             std::vector<int> cand;
             for (int u : G.adj_l[v]) {
