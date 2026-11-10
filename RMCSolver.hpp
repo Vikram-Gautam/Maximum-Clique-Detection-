@@ -576,87 +576,94 @@ private:
     }
 
     // Algorithm 7: divSeed(G, S, k)
-    std::vector<Seed> divSeed(std::vector<Seed>& S, int k, int& lb, int& ub) {
-        std::vector<Seed> S_prime;
+    void divSeedDFS(Seed seed, int& lb, int& ub) {
+        nodes++;
+        checkTimeout();
+        if (timeOut || lb >= ub) return;
 
-        for (const auto& seed : S) {
-            nodes++;
-            checkTimeout();
-            if (timeOut) break;
+        int k = lb + 1;
+        int m = static_cast<int>(seed.cand.size());
+        if (m == 0 || seed.ub < k || static_cast<int>(seed.s.size()) + m < k) return;
 
-            int m = static_cast<int>(seed.cand.size());
-            if (m == 0 || static_cast<int>(seed.s.size() + m) < k) continue;
+        std::vector<int> colors;
+        int numColors = computeSubColoring(m, seed.cand, colors);
+        if (static_cast<int>(seed.s.size()) + numColors < k) return;
 
-            std::vector<int> colors;
-            int numColors = computeSubColoring(m, seed.cand, colors);
-            if (static_cast<int>(seed.s.size()) + numColors < k) continue;
-
-            int reqColor = k - static_cast<int>(seed.s.size());
-            std::vector<int> V1;
-            for (int i = 0; i < m; i++) {
-                if (colors[i] >= reqColor) {
-                    V1.push_back(seed.cand[i]);
-                }
-            }
-
-            for (int v : V1) {
-                checkTimeout();
-                if (timeOut) break;
-
-                std::vector<int> s_prime = seed.s;
-                s_prime.push_back(v);
-
-                std::vector<int> cand_prime;
-                for (int u : seed.cand) {
-                    if (u != v && G.adj_d[v][u]) {
-                        cand_prime.push_back(u);
-                    }
-                }
-
-                if (static_cast<int>(s_prime.size() + cand_prime.size()) < k) continue;
-
-                int m_prime = static_cast<int>(cand_prime.size());
-                std::vector<int> primeCore = computeSubCoreNumbers(m_prime, cand_prime);
-                int reqCorePrime = k - static_cast<int>(s_prime.size()) - 1;
-                std::vector<int> filteredCandPrime;
-                for (int i = 0; i < m_prime; i++) {
-                    if (primeCore[i] >= reqCorePrime) {
-                        filteredCandPrime.push_back(cand_prime[i]);
-                    }
-                }
-
-                int szPrime = static_cast<int>(filteredCandPrime.size());
-                std::vector<int> F;
-                std::vector<int> remPrime;
-                for (int i = 0; i < szPrime; i++) {
-                    int u = filteredCandPrime[i];
-                    int d = 0;
-                    for (int j = 0; j < szPrime; j++) {
-                        if (i != j && G.adj_d[u][filteredCandPrime[j]]) d++;
-                    }
-                    if (d == szPrime - 1) {
-                        F.push_back(u);
-                    } else {
-                        remPrime.push_back(u);
-                    }
-                }
-
-                s_prime.insert(s_prime.end(), F.begin(), F.end());
-                cand_prime = std::move(remPrime);
-
-                if (static_cast<int>(s_prime.size()) > lb) {
-                    lb = static_cast<int>(s_prime.size());
-                    updateChampion(s_prime);
-                }
-                if (lb >= k) k = lb + 1;
-
-                if (!cand_prime.empty() && static_cast<int>(s_prime.size() + cand_prime.size()) >= k) {
-                    S_prime.emplace_back(s_prime, cand_prime, seed.ub);
-                }
+        int reqColor = k - static_cast<int>(seed.s.size());
+        std::vector<int> V1;
+        for (int i = 0; i < m; i++) {
+            if (colors[i] >= reqColor) {
+                V1.push_back(seed.cand[i]);
             }
         }
 
-        return tciSeed(S_prime, k, lb, ub);
+        for (int v : V1) {
+            checkTimeout();
+            if (timeOut || lb >= ub) break;
+
+            // Re-check k in case lb improved during an earlier branch
+            k = lb + 1;
+
+            std::vector<int> s_prime = seed.s;
+            s_prime.push_back(v);
+
+            std::vector<int> cand_prime;
+            for (int u : seed.cand) {
+                if (u != v && G.adj_d[v][u]) {
+                    cand_prime.push_back(u);
+                }
+            }
+
+            if (static_cast<int>(s_prime.size() + cand_prime.size()) < k) continue;
+
+            int m_prime = static_cast<int>(cand_prime.size());
+            std::vector<int> primeCore = computeSubCoreNumbers(m_prime, cand_prime);
+            int reqCorePrime = k - static_cast<int>(s_prime.size()) - 1;
+            std::vector<int> filteredCandPrime;
+            for (int i = 0; i < m_prime; i++) {
+                if (primeCore[i] >= reqCorePrime) {
+                    filteredCandPrime.push_back(cand_prime[i]);
+                }
+            }
+
+            int szPrime = static_cast<int>(filteredCandPrime.size());
+            std::vector<int> F;
+            std::vector<int> remPrime;
+            for (int i = 0; i < szPrime; i++) {
+                int u = filteredCandPrime[i];
+                int d = 0;
+                for (int j = 0; j < szPrime; j++) {
+                    if (i != j && G.adj_d[u][filteredCandPrime[j]]) d++;
+                }
+                if (d == szPrime - 1) {
+                    F.push_back(u);
+                } else {
+                    remPrime.push_back(u);
+                }
+            }
+
+            s_prime.insert(s_prime.end(), F.begin(), F.end());
+            cand_prime = std::move(remPrime);
+
+            if (static_cast<int>(s_prime.size()) > lb) {
+                lb = static_cast<int>(s_prime.size());
+                updateChampion(s_prime);
+            }
+            if (lb >= ub) break;
+            k = lb + 1;
+
+            if (!cand_prime.empty() && static_cast<int>(s_prime.size() + cand_prime.size()) >= k) {
+                Seed child(std::move(s_prime), std::move(cand_prime), seed.ub);
+
+                // Apply TCI reduction to this single child before recursing
+                std::vector<Seed> single = { std::move(child) };
+                single = tciSeed(single, k, lb, ub);
+
+                if (!single.empty() && !timeOut && lb < ub) {
+                    divSeedDFS(std::move(single[0]), lb, ub);
+                }
+            }
+        }
     }
 
 public:
@@ -709,17 +716,16 @@ public:
         }
 
         // Terminal divSeed Phase (Algorithm 2, lines 18-23)
-        if (!timeOut && lb < ub) {
+      if (!timeOut && lb < ub) {
             int wt = lb + 1;
             S = scSeed(wt, lb, ub);
 
             if (!S.empty()) {
                 S = tciSeed(S, wt, lb, ub);
 
-                while (!S.empty() && !timeOut && lb < ub) {
-                    checkTimeout();
-                    if (timeOut) break;
-                    S = divSeed(S, lb + 1, lb, ub);
+                for (auto& seed : S) {
+                    if (timeOut || lb >= ub) break;
+                    divSeedDFS(std::move(seed), lb, ub);
                 }
             }
         }
